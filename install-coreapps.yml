@@ -1,14 +1,11 @@
-- hosts: "{{ hosts }}"
-
+- hosts: docker
   become: yes
   tasks:
-
   - name: install core packages
     apt:
       name:
         - qemu-guest-agent
       update_cache: yes
-
   - name: start guest qemu-guest-agent
     service:
       name: qemu-guest-agent
