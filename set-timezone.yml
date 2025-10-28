@@ -1,8 +1,58 @@
-- hosts: all
+---
+- name: Set timezone on Ubuntu server
+  hosts: all
   become: yes
-
+  vars:
+    timezone: "Europe/London"  # Change this to your desired timezone
+  
   tasks:
+    - name: Check if timezone is valid
+      command: timedatectl list-timezones
+      register: available_timezones
+      changed_when: false
+      check_mode: no
+    
+    - name: Validate timezone exists
+      assert:
+        that:
+          - timezone in available_timezones.stdout
+        fail_msg: "Timezone '{{ timezone }}' is not valid. Run 'timedatectl list-timezones' to see available options."
+        success_msg: "Timezone '{{ timezone }}' is valid."
+    
+    - name: Set timezone
+      community.general.timezone:
+        name: "{{ timezone }}"
+      notify: Restart cron
+    
+    - name: Verify timezone is set correctly
+      command: timedatectl
+      register: timezone_status
+      changed_when: false
+      check_mode: no
+    
+    - name: Display current timezone
+      debug:
+        msg: "{{ timezone_status.stdout_lines | select('search', 'Time zone:') | list | first | default('Timezone info not found') }}"
+      when: timezone_status.stdout_lines is defined
+    
+    - name: Ensure timezone file is properly linked
+      stat:
+        path: /etc/localtime
+      register: localtime_link
+      
+    - name: Verify symlink points to correct timezone
+      debug:
+        msg: "Timezone symlink verified: {{ localtime_link.stat.lnk_source | default('Not a symlink') }}"
+      when: localtime_link.stat.islnk is defined and localtime_link.stat.islnk
+    
+    - name: Display full timezone status
+      debug:
+        var: timezone_status.stdout_lines
+        verbosity: 1
 
-    - name: set timezone to Europe/London
-      timezone:
-        name: Europe/London
+  handlers:
+    - name: Restart cron
+      service:
+        name: cron
+        state: restarted
+      when: ansible_service_mgr == "systemd"
