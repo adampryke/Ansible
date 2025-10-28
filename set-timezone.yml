@@ -1,0 +1,26 @@
+- name: Set timezone on Ubuntu server
+  hosts: all
+  become: yes
+  vars:
+    timezone: "Europe/London"  # Change this to your desired timezone
+  
+  tasks:
+    - name: Set timezone
+      community.general.timezone:
+        name: "{{ timezone }}"
+      notify: Restart cron
+    
+    - name: Verify timezone is set correctly
+      command: timedatectl
+      register: timezone_status
+      changed_when: false
+    
+    - name: Display current timezone
+      debug:
+        msg: "Current timezone: {{ timezone_status.stdout_lines }}"
+  
+  handlers:
+    - name: Restart cron
+      service:
+        name: cron
+        state: restarted
