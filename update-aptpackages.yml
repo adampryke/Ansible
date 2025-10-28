@@ -1,5 +1,8 @@
+---
 - hosts: all
   become: yes
+  become_method: sudo
+  #become_user: root
   vars:
     auto_reboot: false
     reboot_timeout: 300
@@ -27,7 +30,7 @@
     
     - name: upgrade all apt packages
       apt:
-        upgrade: yes
+        upgrade: dist
         update_cache: no
         autoremove: yes
         autoclean: yes
