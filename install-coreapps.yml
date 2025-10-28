@@ -1,6 +1,7 @@
 - name: Configure Ubuntu hosts with core packages
   hosts: all
   become: yes
+  become_user: root
   gather_facts: yes
   tasks:
     - name: Run tasks only on Ubuntu systems
@@ -8,6 +9,7 @@
       block:
         - name: Install core packages (common)
           become: yes
+          become_user: root
           apt:
             name:
               - nano
@@ -19,6 +21,7 @@
 
         - name: Install qemu-guest-agent (Proxmox VMs only)
           become: yes
+          become_user: root
           apt:
             name:
               - qemu-guest-agent
