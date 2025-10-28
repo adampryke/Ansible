@@ -10,6 +10,7 @@
           apt:
             name:
               - nano
+              - bashtop
               - cifs-utils
             state: present
             update_cache: yes
