@@ -1,9 +1,122 @@
 - hosts: all
+  vars:
+    disk_warning_threshold: 80
+    disk_critical_threshold: 90
+    log_retention_days: 7
+    temp_cleanup: true
+  
   tasks:
-    - name: Get disk usage
+    - name: Get full disk usage information
       command: df -h
-      register: disk_usage
+      register: disk_usage_full
+      changed_when: false
 
-    - name: Check disk space available
-      shell: df -h / | awk 'NR==2 {print $5}'
-      register: disk_usage
+    - name: Check root partition disk usage percentage
+      shell: df -h / | awk 'NR==2 {print $5}' | sed 's/%//'
+      register: disk_usage_percent
+      changed_when: false
+
+    - name: Get disk usage for all major partitions
+      shell: df -h | awk 'NR>1 {print $6 ":" $5}' | sed 's/%//'
+      register: all_partitions
+      changed_when: false
+
+    - name: Display current disk usage
+      debug:
+        msg: 
+          - "Root partition usage: {{ disk_usage_percent.stdout }}%"
+          - "All partitions: {{ all_partitions.stdout_lines }}"
+
+    # Warning Level Actions (80-89%)
+    - name: Warning - Disk usage above {{ disk_warning_threshold }}%
+      debug:
+        msg: "⚠️  WARNING: Root partition is at {{ disk_usage_percent.stdout }}% capacity"
+      when: disk_usage_percent.stdout | int >= disk_warning_threshold and disk_usage_percent.stdout | int < disk_critical_threshold
+
+    # Critical Level Actions (90%+)
+    - name: Critical - Disk usage above {{ disk_critical_threshold }}%
+      debug:
+        msg: "🚨 CRITICAL: Root partition is at {{ disk_usage_percent.stdout }}% capacity - Taking automated actions"
+      when: disk_usage_percent.stdout | int >= disk_critical_threshold
+
+    # Cleanup Actions
+    - name: Clean package manager cache (apt)
+      apt:
+        autoclean: yes
+        autoremove: yes
+      become: yes
+      when: 
+        - disk_usage_percent.stdout | int >= disk_warning_threshold
+        - ansible_pkg_mgr == "apt"
+      ignore_errors: yes
+
+    - name: Clean package manager cache (yum/dnf)
+      command: "{{ ansible_pkg_mgr }} clean all"
+      become: yes
+      when: 
+        - disk_usage_percent.stdout | int >= disk_warning_threshold
+        - ansible_pkg_mgr in ["yum", "dnf"]
+      ignore_errors: yes
+
+    - name: Remove old log files
+      find:
+        paths:
+          - /var/log
+        patterns: "*.log.*,*.gz,*.1,*.2,*.3,*.4,*.5"
+        age: "{{ log_retention_days }}d"
+        recurse: yes
+      register: old_logs
+      become: yes
+      when: disk_usage_percent.stdout | int >= disk_warning_threshold
+
+    - name: Delete old log files
+      file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ old_logs.files }}"
+      become: yes
+      when: 
+        - disk_usage_percent.stdout | int >= disk_warning_threshold
+        - old_logs.files is defined
+      ignore_errors: yes
+
+    - name: Clean temporary files
+      shell: |
+        find /tmp -type f -atime +7 -delete
+        find /var/tmp -type f -atime +7 -delete
+      become: yes
+      when: 
+        - disk_usage_percent.stdout | int >= disk_warning_threshold
+        - temp_cleanup | bool
+      ignore_errors: yes
+
+    - name: Find largest directories (top 10)
+      shell: du -h --max-depth=2 / 2>/dev/null | sort -rh | head -n 10
+      register: largest_dirs
+      become: yes
+      when: disk_usage_percent.stdout | int >= disk_warning_threshold
+      ignore_errors: yes
+
+    - name: Display largest directories
+      debug:
+        msg: "{{ largest_dirs.stdout_lines }}"
+      when: 
+        - disk_usage_percent.stdout | int >= disk_warning_threshold
+        - largest_dirs.stdout_lines is defined
+
+    # Check disk usage after cleanup
+    - name: Recheck disk usage after cleanup
+      shell: df -h / | awk 'NR==2 {print $5}' | sed 's/%//'
+      register: disk_usage_after
+      changed_when: false
+      when: disk_usage_percent.stdout | int >= disk_warning_threshold
+
+    - name: Report cleanup results
+      debug:
+        msg: 
+          - "Disk usage before cleanup: {{ disk_usage_percent.stdout }}%"
+          - "Disk usage after cleanup: {{ disk_usage_after.stdout }}%"
+          - "Space freed: {{ disk_usage_percent.stdout | int - disk_usage_after.stdout | int }}%"
+      when: 
+        - disk_usage_percent.stdout | int >= disk_warning_threshold
+        - disk_usage_after.stdout is defined
