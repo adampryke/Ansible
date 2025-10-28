@@ -17,7 +17,8 @@
     
     - name: Display current timezone
       debug:
-        msg: "Current timezone: {{ timezone_status.stdout_lines }}"
+        var: timezone_status.stdout_lines
+        verbosity: 0
   
   handlers:
     - name: Restart cron
