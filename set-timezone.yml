@@ -2,6 +2,7 @@
 - name: Set timezone on Ubuntu server
   hosts: all
   become: yes
+  become_user: root
   vars:
     timezone: "Europe/London"  # Change this to your desired timezone
   
