@@ -15,13 +15,13 @@
           shell: snap list | awk 'NR>1 {print $1}'
           register: snap_list
           changed_when: false
-          when: snap_exists.rc == 0
+          when: snap_exists.stat.exists
 
         - name: Remove all snap packages
           command: snap remove --purge {{ item }}
           loop: "{{ snap_list.stdout_lines }}"
-          when: 
-            - snap_exists.rc == 0
+          when:
+            - snap_exists.stat.exists
             - snap_list.stdout_lines | length > 0
           ignore_errors: yes
 
@@ -34,7 +34,8 @@
             - snapd.seeded.service
           register: snapd_services_check
           failed_when: false
-          when: snap_exists.rc == 0
+          when: 
+            - snap_exists.stat.exists
 
         - name: Stop and disable snapd services
           systemd:
@@ -43,7 +44,7 @@
             enabled: no
           loop: "{{ snapd_services_check.results }}"
           when:
-            - snap_exists.rc == 0
+            - snap_exists.stat.exists
             - snapd_services_check is defined
             - item.status is defined
             - item.status.LoadState == "loaded"
@@ -57,7 +58,7 @@
             state: absent
             purge: yes
             autoremove: yes
-          when: snap_exists.rc == 0
+          when: snap_exists.stat.exists
 
         - name: Remove snap directories
           file:
@@ -70,7 +71,7 @@
             - /var/cache/snapd
             - /usr/lib/snapd
             - ~/snap
-          when: snap_exists.rc == 0
+          when: snap_exists.stat.exists
 
         - name: Prevent snap from being reinstalled
           copy:
@@ -86,9 +87,9 @@
             msg: "Snap has been successfully removed from the system"
           when: snap_exists.rc == 0
 
-      when: snap_exists.rc == 0
+      when: snap_exists.stat.exists
 
     - name: Display skip message
       debug:
         msg: "Snap is not installed on this system"
-      when: snap_exists.rc != 0
+      when: not snap_exists.stat.exists
