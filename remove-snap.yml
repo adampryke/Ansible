@@ -1,0 +1,82 @@
+---
+- name: Remove Snap from Ubuntu Server
+  hosts: all
+  become: yes
+  tasks:
+    - name: Check if snap is installed
+      command: which snap
+      register: snap_exists
+      failed_when: false
+      changed_when: false
+
+    - name: Remove snap packages
+      block:
+        - name: Get list of installed snaps
+          shell: snap list | awk 'NR>1 {print $1}'
+          register: snap_list
+          changed_when: false
+          when: snap_exists.rc == 0
+
+        - name: Remove all snap packages
+          command: snap remove --purge {{ item }}
+          loop: "{{ snap_list.stdout_lines }}"
+          when: 
+            - snap_exists.rc == 0
+            - snap_list.stdout_lines | length > 0
+          ignore_errors: yes
+
+        - name: Stop and disable snapd services
+          systemd:
+            name: "{{ item }}"
+            state: stopped
+            enabled: no
+          loop:
+            - snapd.service
+            - snapd.socket
+            - snapd.seeded.service
+          when: snap_exists.rc == 0
+          ignore_errors: yes
+
+        - name: Remove snapd package
+          apt:
+            name:
+              - snapd
+              - gnome-software-plugin-snap
+            state: absent
+            purge: yes
+            autoremove: yes
+          when: snap_exists.rc == 0
+
+        - name: Remove snap directories
+          file:
+            path: "{{ item }}"
+            state: absent
+          loop:
+            - /snap
+            - /var/snap
+            - /var/lib/snapd
+            - /var/cache/snapd
+            - /usr/lib/snapd
+            - ~/snap
+          when: snap_exists.rc == 0
+
+        - name: Prevent snap from being reinstalled
+          copy:
+            dest: /etc/apt/preferences.d/nosnap.pref
+            content: |
+              Package: snapd
+              Pin: release a=*
+              Pin-Priority: -10
+            mode: '0644'
+
+        - name: Display completion message
+          debug:
+            msg: "Snap has been successfully removed from the system"
+          when: snap_exists.rc == 0
+
+      when: snap_exists.rc == 0
+
+    - name: Display skip message
+      debug:
+        msg: "Snap is not installed on this system"
+      when: snap_exists.rc != 0
