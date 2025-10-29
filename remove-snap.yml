@@ -26,16 +26,28 @@
             - snap_list.stdout_lines | length > 0
           ignore_errors: yes
 
-        - name: Stop and disable snapd services
+        - name: Check if snapd services exist
           systemd:
             name: "{{ item }}"
-            state: stopped
-            enabled: no
           loop:
             - snapd.service
             - snapd.socket
             - snapd.seeded.service
+          register: snapd_services_check
+          failed_when: false
           when: snap_exists.rc == 0
+
+        - name: Stop and disable snapd services
+          systemd:
+            name: "{{ item.item }}"
+            state: stopped
+            enabled: no
+          loop: "{{ snapd_services_check.results }}"
+          when:
+            - snap_exists.rc == 0
+            - snapd_services_check is defined
+            - item.status is defined
+            - item.status.LoadState == "loaded"
           ignore_errors: yes
 
         - name: Remove snapd package
