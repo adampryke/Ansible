@@ -5,10 +5,9 @@
   become_user: root
   tasks:
     - name: Check if snap is installed
-      command: which snap
+      stat:
+        path: /usr/bin/snap
       register: snap_exists
-      failed_when: false
-      changed_when: false
 
     - name: Remove snap packages
       block:
