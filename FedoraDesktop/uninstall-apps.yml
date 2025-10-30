@@ -51,6 +51,11 @@
     autoremove: true
     
   tasks:
+    - name: Ensure python3-libdnf5 is installed
+      ansible.builtin.raw: dnf install -y python3-libdnf5
+      changed_when: false
+      failed_when: false
+    
     - name: Display packages to be removed
       ansible.builtin.debug:
         msg: "The following packages will be removed: {{ packages_to_remove }}"
@@ -60,6 +65,7 @@
         name: "{{ packages_to_remove }}"
         state: absent
         use_backend: dnf5
+        disable_gpg_check: no
       register: uninstall_result
     
     - name: Remove unused dependencies (autoremove)
