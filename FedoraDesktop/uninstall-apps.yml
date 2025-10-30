@@ -25,10 +25,9 @@
       
       # Media players
       - dragon
-      - elisa
+      - elisa-player
       - kamoso  # webcam app
       - k3b    # CD/DVD burning
-      - elisa
       - qrca
       
       # PIM applications
