@@ -1,7 +1,8 @@
 - name: Configure Ubuntu hosts with core packages
   hosts: all
   become: yes
-  become_user: root
+  become_method: sudo
+  #become_user: root
   gather_facts: yes
   tasks:
     - name: Run tasks only on Ubuntu systems
