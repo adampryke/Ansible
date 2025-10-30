@@ -1,17 +1,13 @@
 - name: Configure Ubuntu hosts with core packages
   hosts: all
   become: yes
-  become_method: sudo
-  #become_user: root
   gather_facts: yes
+  
   tasks:
     - name: Run tasks only on Ubuntu systems
       when: ansible_facts['distribution'] == "Ubuntu"
       block:
         - name: Install core packages (common)
-          become: yes
-          become_method: sudo
-          #become_user: root
           apt:
             name:
               - nano
@@ -22,9 +18,6 @@
             cache_valid_time: 3600
 
         - name: Install qemu-guest-agent (Proxmox VMs only)
-          become: yes
-          become_method: sudo
-          #become_user: root
           apt:
             name:
               - qemu-guest-agent
