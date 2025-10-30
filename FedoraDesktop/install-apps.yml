@@ -1,0 +1,47 @@
+---
+- name: Install Flatpak applications from Flathub on Fedora KDE
+  hosts: all
+  become: yes
+  vars:
+    flatpak_apps:
+      - io.github.peazip.PeaZip
+      - com.brave.Browser
+      - org.videolan.VLC
+      - org.mozilla.firefox
+
+  tasks:
+    - name: Ensure Flatpak is installed
+      ansible.builtin.dnf:
+        name: flatpak
+        state: present
+
+    - name: Add Flathub repository
+      community.general.flatpak_remote:
+        name: flathub
+        state: present
+        flatpakrepo_url: https://flathub.org/repo/flathub.flatpakrepo
+        method: system
+
+    - name: Install Flatpak applications from Flathub
+      community.general.flatpak:
+        name: "{{ item }}"
+        state: present
+        method: system
+        remote: flathub
+      loop: "{{ flatpak_apps }}"
+
+    - name: Ensure user session can see Flatpak apps (update XDG_DATA_DIRS)
+      ansible.builtin.lineinfile:
+        path: /etc/profile.d/flatpak.sh
+        line: 'export XDG_DATA_DIRS="/var/lib/flatpak/exports/share:$XDG_DATA_DIRS"'
+        create: yes
+        mode: '0644'
+
+    - name: Display installed Flatpak applications
+      ansible.builtin.command: flatpak list --app
+      register: flatpak_list
+      changed_when: false
+
+    - name: Show installed Flatpaks
+      ansible.builtin.debug:
+        msg: "{{ flatpak_list.stdout_lines }}"
