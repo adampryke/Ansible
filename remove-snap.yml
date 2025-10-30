@@ -4,6 +4,8 @@
   become: yes
   become_method: sudo
   become_user: root
+  vars:
+    ansible_timeout: 30
   tasks:
     - name: Check if snap is installed
       stat:
