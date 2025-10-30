@@ -11,6 +11,7 @@
       - com.brave.Browser
       - org.videolan.VLC
       - org.mozilla.firefox
+    ansible_command_warnings: false
 
   tasks:
     - name: Ensure Flatpak is installed
