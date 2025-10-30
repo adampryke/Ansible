@@ -1,7 +1,10 @@
 ---
 - name: Install Flatpak applications from Flathub on Fedora KDE
-  hosts: all
+  hosts: all  # Change to your target host group or specific hostname
   become: yes
+  become_method: sudo
+  become_user: root
+  gather_facts: yes
   vars:
     flatpak_apps:
       - io.github.peazip.PeaZip
