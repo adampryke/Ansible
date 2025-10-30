@@ -1,0 +1,85 @@
+- name: Uninstall applications from Fedora desktop
+  hosts: localhost
+  become: yes
+  
+  vars:
+    # List of packages to uninstall (KDE/Plasma specific)
+    packages_to_remove:
+      # Browsers
+      - firefox
+      - konqueror
+      
+      # Office suites
+      - libreoffice-*
+      - calligra-*
+      
+      # Email clients
+      - thunderbird
+      - kmail
+      - kontact
+      
+      # Media players
+      - dragon
+      - elisa
+      - kamoso  # webcam app
+      - k3b    # CD/DVD burning
+      
+      # PIM applications
+      - korganizer
+      - kaddressbook
+      - akregator  # RSS reader
+      
+      # Games
+      - kmahjongg
+      - kmines
+      - kpat
+      - knights
+      
+      # Other KDE apps
+      - krfb       # desktop sharing
+      - krdc       # remote desktop client
+      - kget       # download manager
+      - ktorrent
+      - kwrite
+      
+      # Add more packages here
+    
+    # Set to true to also remove dependencies no longer needed
+    autoremove: true
+    
+  tasks:
+    - name: Display packages to be removed
+      ansible.builtin.debug:
+        msg: "The following packages will be removed: {{ packages_to_remove }}"
+    
+    - name: Uninstall specified packages
+      ansible.builtin.dnf:
+        name: "{{ packages_to_remove }}"
+        state: absent
+      register: uninstall_result
+    
+    - name: Remove unused dependencies (autoremove)
+      ansible.builtin.dnf:
+        autoremove: yes
+      when: autoremove | bool
+      register: autoremove_result
+    
+    - name: Display uninstall results
+      ansible.builtin.debug:
+        msg: "Packages successfully removed"
+      when: uninstall_result.changed
+    
+    - name: Display autoremove results
+      ansible.builtin.debug:
+        msg: "Unused dependencies removed"
+      when: autoremove_result.changed | default(false)
+    
+    - name: Clean DNF cache
+      ansible.builtin.command:
+        cmd: dnf clean all
+      changed_when: true
+      
+    - name: No changes made
+      ansible.builtin.debug:
+        msg: "No packages were removed (they may not have been installed)"
+      when: not uninstall_result.changed
