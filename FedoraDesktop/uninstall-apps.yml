@@ -1,6 +1,9 @@
+---
 - name: Uninstall applications from Fedora desktop
   hosts: localhost
   become: yes
+  become_method: sudo
+  become_user: root
   
   vars:
     # List of packages to uninstall (KDE/Plasma specific)
