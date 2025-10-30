@@ -41,9 +41,11 @@
         mode: '0644'
 
     - name: Display installed Flatpak applications
-      ansible.builtin.command: flatpak list --app
+      ansible.builtin.command: flatpak list --app --columns=name,application
       register: flatpak_list
       changed_when: false
+      environment:
+        TERM: dumb
 
     - name: Show installed Flatpaks
       ansible.builtin.debug:
