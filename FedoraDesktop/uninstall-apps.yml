@@ -1,9 +1,10 @@
 ---
 - name: Uninstall applications from Fedora desktop
-  hosts: localhost
+  hosts: all  # Change to your target host group or specific hostname
   become: yes
   become_method: sudo
   become_user: root
+  gather_facts: yes
   
   vars:
     # List of packages to uninstall (KDE/Plasma specific)
@@ -51,10 +52,31 @@
     autoremove: true
     
   tasks:
-    - name: Ensure python3-libdnf5 is installed
-      ansible.builtin.raw: dnf install -y python3-libdnf5
+    - name: Check if dnf5 exists
+      ansible.builtin.stat:
+        path: /usr/bin/dnf5
+      register: dnf5_check
+    
+    - name: Check if dnf exists
+      ansible.builtin.stat:
+        path: /usr/bin/dnf
+      register: dnf_check
+    
+    - name: Fail if neither dnf nor dnf5 is found
+      ansible.builtin.fail:
+        msg: "DNF package manager not found. Are you running this on a Fedora system?"
+      when: not dnf5_check.stat.exists and not dnf_check.stat.exists
+    
+    - name: Set dnf command
+      ansible.builtin.set_fact:
+        dnf_cmd: "{{ '/usr/bin/dnf5' if dnf5_check.stat.exists else '/usr/bin/dnf' }}"
+        dnf_backend: "{{ 'dnf5' if dnf5_check.stat.exists else 'dnf4' }}"
+    
+    - name: Ensure python3-libdnf5 is installed (for dnf5)
+      ansible.builtin.command: "{{ dnf_cmd }} install -y python3-libdnf5"
       changed_when: false
       failed_when: false
+      when: dnf5_check.stat.exists
     
     - name: Display packages to be removed
       ansible.builtin.debug:
@@ -64,12 +86,10 @@
       ansible.builtin.dnf:
         name: "{{ packages_to_remove }}"
         state: absent
-        use_backend: dnf5
+        use_backend: "{{ dnf_backend }}"
         disable_gpg_check: no
         install_weak_deps: no
         allowerasing: yes
-      environment:
-        ANSIBLE_LIBDNF5_MODULE_AUTO_INSTALL: "1"
       check_mode: no
       register: uninstall_result
     
