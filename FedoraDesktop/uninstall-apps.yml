@@ -59,11 +59,13 @@
       ansible.builtin.dnf:
         name: "{{ packages_to_remove }}"
         state: absent
+        use_backend: dnf5
       register: uninstall_result
     
     - name: Remove unused dependencies (autoremove)
       ansible.builtin.dnf:
         autoremove: yes
+        use_backend: dnf5
       when: autoremove | bool
       register: autoremove_result
     
