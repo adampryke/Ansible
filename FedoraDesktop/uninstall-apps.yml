@@ -66,6 +66,11 @@
         state: absent
         use_backend: dnf5
         disable_gpg_check: no
+        install_weak_deps: no
+        allowerasing: yes
+      environment:
+        ANSIBLE_LIBDNF5_MODULE_AUTO_INSTALL: "1"
+      check_mode: no
       register: uninstall_result
     
     - name: Remove unused dependencies (autoremove)
