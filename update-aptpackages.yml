@@ -30,6 +30,8 @@
         msg: "{{ upgradable_count.stdout }} packages available for upgrade"
     
     - name: upgrade all apt packages
+      become: yes
+      become_method: sudo
       apt:
         upgrade: dist
         update_cache: no
