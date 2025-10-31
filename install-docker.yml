@@ -19,13 +19,10 @@
         mode: '0644'
         force: true
     
-    - name: get ubuntu version
-      command: "lsb_release -cs"
-      register: ubuntu_version
-
+    
     - name: add Docker repository
       ansible.builtin.apt_repository:
-        repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ubuntu_version.stdout }} stable"
+        repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
         state: present
 
     - name: update apt cache
