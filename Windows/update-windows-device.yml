@@ -5,7 +5,7 @@
   vars:
     ansible_connection: winrm
     ansible_winrm_server_cert_validation: ignore
-    ansible_port: 5986
+    ansible_port: 5985
   tasks:
   - name: Install all Windows updates
     win_updates:
