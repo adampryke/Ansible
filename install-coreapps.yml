@@ -4,23 +4,13 @@
   become_method: sudo
   gather_facts: yes
   
-  pre_tasks:
-    - name: Ensure no apt lock files exist
-      ansible.builtin.file:
-        path: "{{ item }}"
-        state: absent
-      loop:
-        - /var/lib/apt/lists/lock
-        - /var/cache/apt/archives/lock
-        - /var/lib/dpkg/lock
-      when: ansible_facts['distribution'] == "Ubuntu"
-      ignore_errors: yes
-
   tasks:
     - name: Run tasks only on Ubuntu systems
       when: ansible_facts['distribution'] == "Ubuntu"
       block:
         - name: Install core packages (common)
+          become: yes
+          become_method: sudo
           apt:
             name:
               - nano
@@ -31,6 +21,8 @@
             cache_valid_time: 3600
 
         - name: Install qemu-guest-agent (Proxmox VMs only)
+          become: yes
+          become_method: sudo
           apt:
             name:
               - qemu-guest-agent
@@ -42,6 +34,8 @@
           notify: Restart qemu-guest-agent
 
         - name: Start and enable qemu-guest-agent (Proxmox VMs only)
+          become: yes
+          become_method: sudo
           service:
             name: qemu-guest-agent
             state: started
@@ -50,6 +44,8 @@
 
   handlers:
     - name: Restart qemu-guest-agent
+      become: yes
+      become_method: sudo
       service:
         name: qemu-guest-agent
         state: restarted
