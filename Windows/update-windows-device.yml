@@ -2,7 +2,8 @@
 - name: Update Windows devices
   hosts: windows
   gather_facts: false
-  ansible_connection: winrm
+  vars:
+    ansible_connection: winrm
   tasks:
   - name: Install all Windows updates
     win_updates:
