@@ -1,6 +1,6 @@
 ---
 - name: Update Windows devices
-  hosts: windows
+  hosts: all
   gather_facts: false
   tasks:
   - name: Install all Windows updates
