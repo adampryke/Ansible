@@ -1,0 +1,17 @@
+---
+- name: Restart Windows services
+  hosts: windows
+  gather_facts: false
+  vars:
+    ansible_connection: winrm
+    ansible_winrm_server_cert_validation: ignore
+    ansible_winrm_transport: ntlm
+    ansible_winrm_scheme: http
+    ansible_winrm_port: 5985
+    service_name: "WazuhSvc" # Define the service name here, e.g., "Spooler" or "W3SVC"
+  tasks:
+    - name: Restart the specified Windows service
+      win_service:
+        name: "{{ service_name }}"
+        state: restarted
+      when: service_name != ""
