@@ -4,6 +4,18 @@
   become_method: sudo
   gather_facts: yes
   
+  pre_tasks:
+    - name: Ensure no apt lock files exist
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /var/lib/apt/lists/lock
+        - /var/cache/apt/archives/lock
+        - /var/lib/dpkg/lock
+      when: ansible_facts['distribution'] == "Ubuntu"
+      ignore_errors: yes
+
   tasks:
     - name: Run tasks only on Ubuntu systems
       when: ansible_facts['distribution'] == "Ubuntu"
